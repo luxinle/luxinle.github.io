@@ -1,0 +1,435 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>解决爬虫数据(电影院比价系统)电影院名称不规范问题解决思路 | huijun's blog</title><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/5.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/0.6.0/grids-responsive-min.css"><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">解决爬虫数据(电影院比价系统)电影院名称不规范问题解决思路</h1><a id="logo" href="/.">huijun's blog</a><p class="description"></p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div id="layout" class="pure-g"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">解决爬虫数据(电影院比价系统)电影院名称不规范问题解决思路</h1><div class="post-meta">Dec 12, 2016<script src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> Hits</span></span></div><div class="post-content"><h2 id="1-问题"><a href="#1-问题" class="headerlink" title="1 问题"></a>1 问题</h2><p>各大网站录入电影院，地址没有统一的规范，造成电影票无法比价。</p>
+<h2 id="2-解决思路"><a href="#2-解决思路" class="headerlink" title="2  解决思路"></a>2  解决思路</h2><h3 id="2-1-经纬度范围查找"><a href="#2-1-经纬度范围查找" class="headerlink" title="2.1 经纬度范围查找"></a>2.1 经纬度范围查找</h3><p>拿到数据中包含经度维度信息，根据经纬度范围查找锁定这些名字不同的电影院为同一家电影院。</p>
+<h4 id="2-1-1-各大网站使用的地图坐标协议不同"><a href="#2-1-1-各大网站使用的地图坐标协议不同" class="headerlink" title="2.1.1 各大网站使用的地图坐标协议不同"></a>2.1.1 各大网站使用的地图坐标协议不同</h4><p>（google、高德、腾讯、图吧地图、图吧导航）使用的是gcj02，百度、搜狗使用的是另外一种坐标协议bd09。所以网上找个java写的统一转换各大地图协议至百度地图的代码，然后改写为mysql的自定义函数，转换后误差在万分之五（距离大概是5-5.5米）</p>
+<h4 id="一、经纬度距离换算"><a href="#一、经纬度距离换算" class="headerlink" title="一、经纬度距离换算"></a>一、经纬度距离换算</h4><h5 id="a）在纬度相等的情况下："><a href="#a）在纬度相等的情况下：" class="headerlink" title="a）在纬度相等的情况下："></a>a）在纬度相等的情况下：</h5><p> 经度每隔0.00001度，距离相差约1米；<br> 每隔0.0001度，距离相差约10米；<br> 每隔0.001度，距离相差约100米；<br> 每隔0.01度，距离相差约1000米；<br> 每隔0.1度，距离相差约10000米。</p>
+<h5 id="b）在经度相等的情况下："><a href="#b）在经度相等的情况下：" class="headerlink" title="b）在经度相等的情况下："></a>b）在经度相等的情况下：</h5><p> 纬度每隔0.00001度，距离相差约1.1米；<br> 每隔0.0001度，距离相差约11米；<br> 每隔0.001度，距离相差约111米；<br> 每隔0.01度，距离相差约1113米；<br> 每隔0.1度，距离相差约11132米。</p>
+<h5 id="–-高德-convert-to-百度经纬度函数"><a href="#–-高德-convert-to-百度经纬度函数" class="headerlink" title="– 高德 convert to 百度经纬度函数"></a>– 高德 convert to 百度经纬度函数</h5><p>（网上java有现成代码，这是根据java改写mysql代码）。<br>各个地图经纬度转换</p>
+<h4 id="–-转换维度"><a href="#–-转换维度" class="headerlink" title="– 转换维度"></a>– 转换维度</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">DELIMITER |</div><div class="line">CREATE FUNCTION convert_gcj02_to_bd09_lat(longitude DOUBLE(9,6),latitude DOUBLE(9,6))</div><div class="line">RETURNS DOUBLE(9,6)</div><div class="line">BEGIN</div><div class="line">    DECLARE x_pi DOUBLE(9,8);</div><div class="line">    DECLARE x DOUBLE(9,6);</div><div class="line">    DECLARE y DOUBLE(9,6);</div><div class="line">    DECLARE z DOUBLE(9,6);</div><div class="line">    DECLARE theta DOUBLE(10,9);</div><div class="line">    SET x_pi =  3.14159265358979324 * 3000.0 / 180.0;</div><div class="line">    SET x=longitude;</div><div class="line">    SET y=latitude;</div><div class="line">    SET z=sqrt(x*x+y*y)+ 0.00002 * sin(y*x_pi);</div><div class="line">    SET theta=atan2(y,x)+ 0.000003 * cos(x*x_pi);</div><div class="line">    SET longitude=z*cos(theta)+0.0065;</div><div class="line">    SET latitude=z*sin(theta)+0.006;</div><div class="line">    RETURN latitude;</div><div class="line">END |</div><div class="line">DELIMITER ;</div></pre></td></tr></table></figure>
+<h4 id="–-测试"><a href="#–-测试" class="headerlink" title="– 测试"></a>– 测试</h4><p><code>SELECT convert_gcj02_to_bd09_lat(120.098703,29.324483);</code></p>
+<h4 id="–-转换经度"><a href="#–-转换经度" class="headerlink" title="– 转换经度"></a>– 转换经度</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">DELIMITER |</div><div class="line">CREATE FUNCTION convert_gcj02_to_bd09_lng(longitude DOUBLE(9,6),latitude DOUBLE(9,6))</div><div class="line">RETURNS DOUBLE(9,6)</div><div class="line">BEGIN</div><div class="line">    DECLARE x_pi DOUBLE(9,8);</div><div class="line">    DECLARE x DOUBLE(9,6);</div><div class="line">    DECLARE y DOUBLE(9,6);</div><div class="line">    DECLARE z DOUBLE(9,6);</div><div class="line">    DECLARE theta DOUBLE(10,9);</div><div class="line">    SET x_pi =  3.14159265358979324 * 3000.0 / 180.0;</div><div class="line">    SET x=longitude;</div><div class="line">    SET y=latitude;</div><div class="line">    SET z=sqrt(x * x + y * y) + 0.00002 * sin(y * x_pi);</div><div class="line">    SET theta = atan2(y, x) + 0.000003 * cos(x * x_pi);</div><div class="line">    SET longitude = z * cos(theta) + 0.0065;</div><div class="line">    RETURN longitude;</div><div class="line">END |</div><div class="line">DELIMITER ;</div></pre></td></tr></table></figure>
+<h4 id="–-测试-1"><a href="#–-测试-1" class="headerlink" title="– 测试"></a>– 测试</h4><p><code>SELECT convert_gcj02_to_bd09_lng(120.098703,29.324483);</code></p>
+<h4 id="–-根据经纬度计算距离函数"><a href="#–-根据经纬度计算距离函数" class="headerlink" title="– 根据经纬度计算距离函数"></a>– 根据经纬度计算距离函数</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">DELIMITER |</div><div class="line">CREATE FUNCTION `juli`(lat1 DOUBLE(10,7),lat2 DOUBLE(10,7),lng1 DOUBLE(10,7),lng2 DOUBLE(10,7)) RETURNS double</div><div class="line">BEGIN</div><div class="line">SET @distance=round(6378.138*2*asin(sqrt(pow(sin( (lat1*pi()/180-lat2*pi()/180)/2),2)+cos(lat1*pi()/180)*cos(lat2*pi()/180)* pow(sin( (lng1*pi()/180-lng2*pi()/180)/2),2)))*1000);</div><div class="line">RETURN @distance;</div><div class="line">END |</div><div class="line">DELIMITER ;</div></pre></td></tr></table></figure>
+<h4 id="2-1-2-弃用经纬度算法"><a href="#2-1-2-弃用经纬度算法" class="headerlink" title="2.1.2 弃用经纬度算法"></a>2.1.2 弃用经纬度算法</h4><p>很多影院的经纬度信息为null，而且有些经纬度信息不太准确，所以后面弃用了根据经纬度去定位是否为同一家影院。</p>
+<h2 id="3-根据电影院名字，电话，地址的相识度匹配。"><a href="#3-根据电影院名字，电话，地址的相识度匹配。" class="headerlink" title="3. 根据电影院名字，电话，地址的相识度匹配。"></a>3. 根据电影院名字，电话，地址的相识度匹配。</h2><h3 id="3-1-公式如下"><a href="#3-1-公式如下" class="headerlink" title="3.1 公式如下"></a>3.1 公式如下</h3><p>count（相识单词之间A和B）/count(A)+count(B)-count(交集))</p>
+<h3 id="3-2-代码如下："><a href="#3-2-代码如下：" class="headerlink" title="3.2 代码如下："></a>3.2 代码如下：</h3><p>电影院名称相识度匹配</p>
+<h4 id="–-对比两个字符串"><a href="#–-对比两个字符串" class="headerlink" title="– 对比两个字符串"></a>– 对比两个字符串</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div></pre></td><td class="code"><pre><div class="line">DELIMITER ;;</div><div class="line">CREATE FUNCTION `levenshtein`( s1 TEXT, s2 TEXT) RETURNS INT(11)</div><div class="line">    DETERMINISTIC</div><div class="line">BEGIN</div><div class="line">    DECLARE s1_len, s2_len, i, j, c, c_temp, cost INT;</div><div class="line">    DECLARE s1_char CHAR;</div><div class="line">    DECLARE cv0, cv1 TEXT;</div><div class="line">    SET s1_len = CHAR_LENGTH(s1), s2_len = CHAR_LENGTH(s2), cv1 = 0x00, j = 1, i = 1, c = 0;</div><div class="line">    IF s1 = s2 THEN</div><div class="line">        RETURN 0;</div><div class="line">    ELSEIF s1_len = 0 THEN</div><div class="line">        RETURN s2_len;</div><div class="line">    ELSEIF s2_len = 0 THEN</div><div class="line">        RETURN s1_len;</div><div class="line">    ELSE</div><div class="line">        WHILE j &lt;= s2_len DO</div><div class="line">            SET cv1 = CONCAT(cv1, UNHEX(HEX(j)));</div><div class="line">            SET j = j + 1;</div><div class="line">        END WHILE;</div><div class="line">         </div><div class="line">        WHILE i &lt;= s1_len DO</div><div class="line">            SET s1_char = SUBSTRING(s1, i, 1);</div><div class="line">            SET c = i;</div><div class="line">            SET cv0 = UNHEX(HEX(i));</div><div class="line">            SET j = 1;</div><div class="line">            WHILE j &lt;= s2_len DO</div><div class="line">                SET c = c + 1;</div><div class="line">                IF s1_char = SUBSTRING(s2, j, 1) THEN</div><div class="line">                    SET cost = 0;</div><div class="line">                    ELSE SET cost = 1;</div><div class="line">                END IF;</div><div class="line">                SET c_temp = CONV(HEX(SUBSTRING(cv1, j, 1)), 16, 10) + cost;</div><div class="line">                IF c &gt;  c_temp THEN SET c = c_temp; END IF;</div><div class="line">                SET c_temp = CONV(HEX(SUBSTRING(cv1, j+1, 1)), 16, 10) + 1;</div><div class="line">                IF c &gt; c_temp THEN</div><div class="line">                    SET c = c_temp;</div><div class="line">                END IF;</div><div class="line">                SET cv0 = CONCAT(cv0, UNHEX(HEX(c)));</div><div class="line">                SET j = j + 1;</div><div class="line">            END WHILE;</div><div class="line">            SET cv1 = cv0;</div><div class="line">            SET i = i + 1;</div><div class="line">        END WHILE;</div><div class="line">    END IF;</div><div class="line">    RETURN c;</div><div class="line">  END ;;</div><div class="line">DELIMITER ;</div><div class="line">``` </div><div class="line"></div><div class="line">#### -- 两个字符串相识度占比</div></pre></td></tr></table></figure>
+<p>DELIMITER ;;<br>CREATE FUNCTION <code>levenshtein_ratio</code>( s1 TEXT, s2 TEXT ) RETURNS INT(11)<br>    DETERMINISTIC<br>BEGIN<br>    DECLARE s1_len, s2_len, max_len INT;<br>    SET s1_len = LENGTH(s1), s2_len = LENGTH(s2);<br>    IF s1_len &gt;  s2_len THEN<br>      SET max_len = s1_len;<br>    ELSE<br>      SET max_len = s2_len;<br>    END IF;<br>    RETURN ROUND((1 - LEVENSHTEIN(s1, s2) / max_len) * 100);<br>  END |<br>DELIMITER ;;<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">#### -- 通过几次测试，相识度大于等于90的大致为同一影院。个别电影院名字极度相仿的，可以对相识度值做一些调整。</div></pre></td></tr></table></figure></p>
+<p>SELECT *,levenshtein_ratio(‘龙海金逸影城(美一店)’,cinema_name) xiangshi FROM <code>bidding_cinema_data</code><br>WHERE  levenshtein_ratio(‘龙海金逸影城(美一店)’,cinema_name)&gt;=90;<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">## 4. 重回经纬度</div><div class="line">字符串匹配的精确度很难达到80以上(因为有的电影院名字很短,只有两个字或4个字) </div><div class="line">所以这些电影院相识度匹配的时候,很难区分...</div><div class="line">### 4.1 问题</div><div class="line">采集到的数据,有的经纬度信息为null</div><div class="line">所以根据百度地图接口传入地址来补全经纬度信息.</div><div class="line">### 4.2 根据经纬度范围打标签</div><div class="line">SQL脚本如下:</div><div class="line">打标签第一版本</div></pre></td></tr></table></figure></p>
+<p>DELIMITER ;;<br>CREATE PROCEDURE <code>set_lable</code>(lng DOUBLE,lat DOUBLE,rounds DOUBLE,city_meta_id int,lables int)</p>
+<p>– lng:维度<br>– lat:经度<br>– rounds:前后范围<br>– city_meta_id:城市编号<br>– labels:标签</p>
+<p>BEGIN<br>    set @lng=lng;<br>    set @lat=lat;<br>    set @rounds=rounds;<br>    set @lable=lables;<br>    set @city_meta_id=city_meta_id;</p>
+<pre><code>update clean_cinema_data_copy as a 
+inner join bidding_city_data as b
+on a.city_id=b.city_id
+and a.site_id=b.site_id
+SET lable=@lable,
+brand=replace(replace(replace(replace(replace(replace(replace(replace(cinema_name,&apos;电影院&apos;,&apos; &apos;),&apos;电影城&apos;,&apos; &apos;),&apos;影视城&apos;,&apos; &apos;),&apos;国际&apos;,&apos;&apos;),&apos;影院&apos;,&apos; &apos;),&apos;影城&apos;,&apos; &apos;),&apos;影视&apos;,&apos;  &apos;),city_name,&apos; &apos;)
+where longitude&lt;&gt;0.0
+and city_meta_id=@city_meta_id
+and latitude&gt;= @lat-@rounds and latitude&lt;@lat+@rounds
+and longitude&gt;= @lng-@rounds and longitude&lt;@lng+@rounds
+and lable is NULL;
+</code></pre><p>END;;<br>DELIMITER ;<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">### 4.3 调用上面过程的脚本</div><div class="line">批量打标签第一版本</div></pre></td></tr></table></figure></p>
+<p>set @rownum=0;<br>select<br>concat(‘call set_lable(‘,longitude,’,’,latitude,’,’,0.006,’,’,3120,’,’,@rownum:=@rownum+1,’);’)<br>from clean_cinema_data_copy<br>where city_meta_id=3120<br>and longitude&lt;&gt;0.0;<br>– 把此语句执行的结果复制到连接数据库的IDE里执行<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">### 4.4 根据经纬度范围打标签结果</div></pre></td></tr></table></figure></p>
+<p>最终的准确度在65%-75% 之间, 距离最终90%还有一定距离.<br>所以后面会加上一些brand的词库. 根据经纬度范围打过标签之后再根据brand这个维度再打一次.<br>上海市<br>千分之六:大于等于4家的是128个, 等于4家的是91个;<br>千分之三:大于等于4家的是139个, 等于4家的是113个;<br>千分之二:大于等于4家的是142个, 等于4家的是125个;  SELECT 125*1.0/165  准确度:0.75758;</p>
+<p>北京市<br>千分之六:大于等于4家的是110个, 等于4家的是83个; select 83<em>1.0/136 0.61029;<br>千分之三:大于等于4家的是107个, 等于4家的是92个; select 92</em>1.0/136  准确度: 0.67647;<br>千分之二:大于等于4家的是99个, 等于4家的是89个; SELECT 89*1.0/136 0.65441;</p>
+<p>广州市<br>千分之六:大于等于4家的是78个, 等于4家的是58个; select 58<em>1.0/105 0.55238;<br>千分之三:大于等于4家的是79个, 等于4家的是68个; select 68</em>1.0/105  准确度:0.64762;<br>千分之二:大于等于4家的是76个, 等于4家的是66个;  SELECT 66*1.0/105 0.62857;<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">## 5. 根据经纬度范围和词库brand两个维度打标签的准确率</div><div class="line">思路</div><div class="line">根据两个经纬度打标签,打完标签, 本来5个的6个的7个的可能会分出来1,2,3条,</div><div class="line">再加上一个维度打标签,完全为4个电影院的准确率为 </div><div class="line">-- 上海市两个维度打标签 0.7879    上海由原来的0.75758 提升为0.75758</div><div class="line">-- 北京市两个维度打标签 0.7353    北京由原来的0.67647提升为0.7353</div><div class="line">-- 广州市两个维度打标签 0.6762    广州由原来的0.64762提升为0.6762</div><div class="line">准确率还是不太高......</div><div class="line"></div><div class="line">## 6. 加维度</div><div class="line"></div><div class="line">逻辑如下: </div><div class="line">#### 6.1 首先根据经纬度的范围打一次标签(把范围在200 米内的并且有4家[4个网站] 算为一个电影院)     &#123;结果集1&#125;</div><div class="line">#### 6.2 再把范围200米内不为4家(有的比较密集,8家,12家)加上简单的品牌分词, 按 机器标签, 品牌分组 等于4个的集合    &#123;结果集2&#125;</div><div class="line">#### 6.3 再把城市所有数据 跟上面两个结果集的数据的交集求并集&#123;结果集3&#125;</div><div class="line">#### 6.4 贪心算法 应用到结果集合3, 从500米开始步长循环处理每次递减50米...把完全等于4的集合放入临时表...(这里会产生9个临时表)</div><div class="line">#### 6.5 创建过程把  集合1 U distinct &#123;临时表1 U 临时表2 U 临时表 U 临时表3 U 临时表4 U 临时表5 U 临时表6 U 临时表7 U 临时表8 U 临时表9&#125;  </div><div class="line">取出来就是该城市最终数据, 上面公式中文解释 9个临时表取并集 去除重复后 跟集合1 取交集...</div><div class="line"> </div><div class="line"> </div><div class="line">## 7. 打标签代码如下:</div><div class="line">打标签第二版本</div></pre></td></tr></table></figure></p>
+<p>DELIMITER ;;<br>CREATE PROCEDURE <code>set_lable1</code>(tablename VARCHAR(48),lng DOUBLE,lat DOUBLE,rounds DOUBLE,city_meta_id INT)<br>BEGIN<br>      DECLARE a INT DEFAULT 1;<br>      SET @tablename=tablename;<br>        SET @lng=lng;<br>        SET @lat=lat;<br>        SET @rounds=rounds;<br>        SET @city_meta_id=city_meta_id;<br>        SET @v_sql=CONCAT(‘SELECT ifnull(max(lable)+1,1) INTO @nums FROM ‘,@tablename);</p>
+<pre><code>  PREPARE stmt FROM @v_sql;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+
+
+  SET @v_sql=CONCAT(&apos;UPDATE &apos;,@tablename,&apos; AS a 
+  INNER JOIN bidding_city_data AS b
+  ON a.city_id=b.city_id
+  AND a.site_id=b.site_id
+  SET lable=&apos;,@nums,&apos;,&apos;,
+  &apos; brand=LEFT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(cinema_name,&quot;电影院&quot;,&quot;&quot;),&quot;电影城&quot;,&quot;&quot;),&quot;影视城&quot;,&quot;&quot;),&quot;国际&quot;,&quot;&quot;),&quot;影院&quot;,&quot;&quot;),&quot;影城&quot;,&quot;&quot;),&quot;影视&quot;,&quot;&quot;),city_name,&quot;&quot;),&quot;（&quot;,&quot;&quot;),&quot;(&quot;,&quot;&quot;),&quot;）&quot;,&quot;&quot;),&quot;)&quot;,&quot;&quot;),&quot;影剧院&quot;,&quot;&quot;),&quot;-&quot;,&quot;&quot;),&quot; &quot;,&quot;&quot;),3)
+  WHERE longitude&lt;&gt;0.0
+  AND city_meta_id=&apos;,@city_meta_id,&apos;
+  AND latitude&gt;=&apos;, @lat-@rounds, &apos; AND latitude&lt; &apos;,@lat+@rounds,
+  &apos; AND longitude&gt;=&apos;, @lng-@rounds,&apos; AND longitude&lt; &apos;,@lng+@rounds,
+  &apos; AND lable IS NULL;&apos;);
+
+PREPARE stmt FROM @v_sql;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+</code></pre><p>END;;<br>DELIMITER ;<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">## 8. 批量打标签脚本</div><div class="line">批量打标签第二版本</div></pre></td></tr></table></figure></p>
+<p>delimiter |<br>CREATE PROCEDURE batch_set_lable1(city INT,rounds DOUBLE,groups INT)<br>BEGIN<br>    DECLARE done INT DEFAULT -1;<br>    DECLARE lng DOUBLE;<br>    DECLARE lat DOUBLE;<br>    DECLARE cur CURSOR FOR SELECT longitude,latitude FROM clean_cinema_data_copy WHERE city_meta_id=city AND longitude&lt;&gt;0.0;<br>    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done=1;<br>    OPEN cur;<br>        read_loop:LOOP<br>            FETCH cur INTO lng,lat;<br>            IF done=1 THEN<br>                LEAVE read_loop;<br>            END IF;<br>            CALL set_lable1(‘clean_cinema_data_copy’,lng,lat,rounds,city);<br>        END LOOP;<br>    CLOSE cur;</p>
+<pre><code>-- 根据经纬度范围0.002打标签和
+-- 每组不等于4个的数据再根据品牌分组等于4的集合,
+-- 此集合与上海市的全部数据的差集,
+-- 是我们后续需要缩小经纬度分析的集合
+
+DROP TABLE IF EXISTS step_5_0;
+CREATE TABLE step_5_0 AS
+SELECT * FROM
+(
+
+        SELECT a.* FROM clean_cinema_data_copy AS a
+        INNER JOIN
+        (
+            SELECT * FROM clean_cinema_data_copy
+            WHERE  city_meta_id=city
+            GROUP BY `lable`
+            HAVING count(1)=groups
+        ) AS b
+        ON a.`lable`=b.`lable`
+        AND a.city_meta_id=city  
+        UNION
+
+        SELECT c.* FROM clean_cinema_data_copy AS c INNER JOIN
+        (
+            SELECT * FROM
+            (
+                SELECT a.* FROM clean_cinema_data_copy a
+                INNER JOIN
+                (
+                    SELECT
+                    lable,
+                    id,
+                    longitude,
+                    latitude,
+                    cinema_name,
+                    cinema_meta_id,
+                    brand,
+                    COUNT(DISTINCT cinema_meta_id) cinemas,
+                    COUNT(1) counts
+                    FROM clean_cinema_data_copy
+                    WHERE city_meta_id=city
+                    AND longitude&lt;&gt;0
+                    GROUP BY lable
+                    HAVING count(1)&lt;&gt;groups
+                )b
+                ON a.lable=b.lable
+                AND a.brand=b.`brand`
+                GROUP BY lable,brand
+                HAVING count(1)=groups
+            )tb
+            GROUP BY lable,brand
+        )d
+        ON c.lable=d.`lable`
+        AND c.brand=d.brand  
+        AND c.city_meta_id
+)h;
+
+-- 处理500米内的数据
+SET @rownum=0;
+DROP TABLE IF EXISTS tmp_5_0;
+CREATE TABLE tmp_5_0
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_5_0 SET lable=NULL;
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_5_0;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_5_0 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_5_0&apos;,lng,lat,0.005,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+-- 处理450米内的数据
+DROP TABLE IF EXISTS tmp_4_5;
+CREATE TABLE tmp_4_5
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_4_5 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_4_5;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_4_5 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_4_5&apos;,lng,lat,0.0045,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+-- 处理400米内的数据
+DROP TABLE IF EXISTS tmp_4_0;
+CREATE TABLE tmp_4_0
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_4_0 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_4_0;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_4_0 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_4_0&apos;,lng,lat,0.004,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+-- 处理350米内的数据
+DROP TABLE IF EXISTS tmp_3_5;
+CREATE TABLE tmp_3_5
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_3_5 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_3_5;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_3_5 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_3_5&apos;,lng,lat,0.0035,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+-- 处理300米内的数据
+DROP TABLE IF EXISTS tmp_3_0;
+CREATE TABLE tmp_3_0
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_3_0 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_3_0;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_3_0 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_3_0&apos;,lng,lat,0.003,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+-- 处理250米内的数据
+DROP TABLE IF EXISTS tmp_2_5;
+CREATE TABLE tmp_2_5
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_2_5 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_2_5;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_2_5 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_2_5&apos;,lng,lat,0.005,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+-- 处理200米内的数据
+DROP TABLE IF EXISTS tmp_2_0;
+CREATE TABLE tmp_2_0
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_2_0 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_2_0;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_2_0 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_2_0&apos;,lng,lat,0.002,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+-- 处理150米内的数据
+DROP TABLE IF EXISTS tmp_1_5;
+CREATE TABLE tmp_1_5
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_1_5 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_1_5;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_1_5 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_1_5&apos;,lng,lat,0.0015,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+ -- 处理100米内的数据
+DROP TABLE IF EXISTS tmp_1_0;
+CREATE TABLE tmp_1_0
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_1_0 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_1_0;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_1_0 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_1_0&apos;,lng,lat,0.001,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;
+-- 处理50米内的数据
+DROP TABLE IF EXISTS tmp_0_5;
+CREATE TABLE tmp_0_5
+SELECT *,@rownum:=@rownum+1 orders FROM clean_cinema_data_copy
+WHERE `city_meta_id`=city
+AND (longitude&lt;&gt;0.0 OR latitude&lt;&gt;0.0)
+AND id NOT IN
+(
+SELECT id FROM step_5_0
+);
+UPDATE tmp_0_5 SET lable=NULL; 
+
+SET @loopstart=1;
+SELECT @loopend:=max(orders) FROM tmp_0_5;
+
+WHILE @loopstart&lt;=@loopend DO
+BEGIN
+    SELECT longitude,latitude INTO lng,lat FROM tmp_0_5 WHERE orders=@loopstart;
+    CALL set_lable1(&apos;tmp_0_5&apos;,lng,lat,0.001,city);
+    SET @loopstart=@loopstart+1;
+END;
+END WHILE;      
+</code></pre><p>END |<br>DELIMITER ;<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">## 9. 获取最终结果的过程</div><div class="line">获取结果的过程</div></pre></td></tr></table></figure></p>
+<p>delimiter |<br>CREATE PROCEDURE cinema_result(groups INT)<br>begin<br>    SELECT id,cinema_id,agent_id,cinema_name,area,addr,<code>area_name</code>,<br>    tele,longitude,latitude,cinema_brand,url,score,service,city_id,site_id,<br>    STATUS,<code>cinema_meta_id</code>,<code>unique_name</code>,concat(‘step_’,lable) lable FROM step_5_0</p>
+<pre><code>UNION
+SELECT * FROM
+(
+    SELECT DISTINCT id,cinema_id,agent_id,cinema_name,area,addr,`area_name`,
+    tele,longitude,latitude,cinema_brand,url,score,service,city_id,site_id,
+    STATUS,`cinema_meta_id`,`unique_name`,lable FROM
+    (
+        SELECT * FROM tmp_5_0 WHERE lable IN
+        (
+            SELECT lable FROM tmp_5_0
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_4_5 WHERE lable IN
+        (
+            SELECT lable FROM tmp_4_5
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_4_0 WHERE lable IN
+        (
+            SELECT lable FROM tmp_4_0
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_3_5 WHERE lable IN
+        (
+            SELECT lable FROM tmp_3_5
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_3_0
+        WHERE lable IN
+        (
+            SELECT lable FROM tmp_3_0
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_2_5
+        WHERE lable IN
+        (
+            SELECT lable FROM tmp_2_5
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_2_0
+        WHERE lable IN
+        (
+            SELECT lable FROM tmp_2_0
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_1_5
+        WHERE lable IN
+        (
+            SELECT lable FROM tmp_1_5
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_1_0
+        WHERE lable IN
+        (
+            SELECT lable FROM tmp_1_0
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+        UNION
+        SELECT * FROM tmp_0_5
+        WHERE lable IN
+        (
+            SELECT lable FROM tmp_0_5
+            GROUP BY lable
+            HAVING count(1)=groups
+        )
+    )tb
+)tb1
+GROUP BY id,cinema_id,agent_id,cinema_name,area,addr,`area_name`,
+    tele,longitude,latitude,cinema_brand,url,score,service,city_id,site_id,
+    STATUS,`cinema_meta_id`,`unique_name`
+ORDER BY lable;
+</code></pre><p>END |<br>delimiter ;<br>```</p>
+<h2 id="10-过程调用方法"><a href="#10-过程调用方法" class="headerlink" title="10. 过程调用方法"></a>10. 过程调用方法</h2><h3 id="两个过程的使用方法"><a href="#两个过程的使用方法" class="headerlink" title="两个过程的使用方法"></a>两个过程的使用方法</h3><p>/<em><br>第一个参数是城市编号,<br>第二个参数是第一次打标签使用的范围值(此处0.003或0.002能筛选出的数据最多).<br>第三个参数:4 跟爬去的站点数对应
+</em>/<br><code>CALL batch_set_lable1(3120,0.002,4);</code></p>
+<p>/<em><br>参数的含义是分几个站,<br>跟爬去的站点数量对应.<br>从表中拿出最终结果.
+</em>/<br><code>CALL cinema_result(4);</code></p>
+<h3 id="用贪心算法得出北上广三个城市的正确率"><a href="#用贪心算法得出北上广三个城市的正确率" class="headerlink" title="用贪心算法得出北上广三个城市的正确率:"></a>用贪心算法得出北上广三个城市的正确率:</h3><p>上海:86.67%<br>北京:85.29%<br>广州:78.09%</p>
+<h3 id="剩余的一些数据-需要人工比对…"><a href="#剩余的一些数据-需要人工比对…" class="headerlink" title="剩余的一些数据:需要人工比对…"></a>剩余的一些数据:需要人工比对…</h3><h2 id="11-根据贪心算法得出数据的准确率"><a href="#11-根据贪心算法得出数据的准确率" class="headerlink" title="11. 根据贪心算法得出数据的准确率"></a>11. 根据贪心算法得出数据的准确率</h2><p>(<br>此准确率是跟人工分组每组4个对比得出, 人工分组不等于4   小于4数据不完整,大于4此影院多拿一条数据<br>我暂时认为数据非法, 哪怕机器分组 3 个,5个的跟人工的完全一致 , 也视为非法<br> )</p>
+</div><script type="text/javascript" src="/js/share.js?v=0.0.0" async></script><a data-url="http://yoursite.com/2016/12/12/解决爬虫数据-电影院比价系统-电影院名称不规范问题解决思路/" data-id="ciwltp9vn00066m3zbu3qasvp" class="article-share-link">分享到</a><div class="tags"><a href="/tags/Work/">Work</a></div><div class="post-nav"><a href="/2016/12/12/MongoDB-分片/" class="next">MongoDB 分片</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank" class="search-form"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="http://yoursite.com"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/MongoDB/" style="font-size: 15px;">MongoDB</a> <a href="/tags/Sqoop/" style="font-size: 15px;">Sqoop</a> <a href="/tags/postgis/" style="font-size: 15px;">postgis</a> <a href="/tags/Work/" style="font-size: 15px;">Work</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2016/12/12/解决爬虫数据-电影院比价系统-电影院名称不规范问题解决思路/">解决爬虫数据(电影院比价系统)电影院名称不规范问题解决思路</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/12/12/MongoDB-分片/">MongoDB 分片</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/12/09/postGis-安装部署-对比geohash性能/">postGis 安装部署,对比geohash性能</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/12/08/Sqoop2-同步mysql-至-HDFS/">Sqoop2 同步mysql 至 HDFS</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/12/08/Sqoop2-version-1-99-7-安装部署/">Sqoop2 version 1.99.7 安装部署</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="http://qinyueming.cc/" title="秦悦明的运维笔记" target="_blank">秦悦明的运维笔记</a><ul></ul><a href="http://www.sunxing.cc/" title="孙星的个人博客~" target="_blank">孙星的个人博客~</a><ul></ul><a href="http://www.example3.com/" title="site-name3" target="_blank">site-name3</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">© <a href="/." rel="nofollow">huijun's blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a id="rocket" href="#top" class="show"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.pack.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="/css/jquery.fancybox.css?v=0.0.0"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
